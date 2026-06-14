@@ -1,6 +1,7 @@
 // Collectible cheese wedge. Static, so it projects to iso once and just bobs.
 
 import { isoPos, isoDepth } from '../systems/iso.js';
+import { COLORS } from '../config.js';
 
 export default class Cheese {
   constructor(scene, wx, wy) {
@@ -12,9 +13,16 @@ export default class Cheese {
     const p = isoPos(wx, wy);
     const depth = isoDepth(wx, wy);
     this.shadow = scene.add.ellipse(p.x, p.y + 1, 18, 9, 0x000000, 0.18).setDepth(depth + 0.05);
+    this.glow = scene.add
+      .image(p.x, p.y, 'glow')
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setTint(COLORS.glowCheese)
+      .setScale(0.5)
+      .setAlpha(0.55)
+      .setDepth(depth + 0.1);
     this.view = scene.add.image(p.x, p.y, 'cheese').setOrigin(0.5, 0.9).setDepth(depth + 0.2);
     scene.tweens.add({
-      targets: this.view,
+      targets: [this.view, this.glow],
       y: p.y - 5,
       duration: 850,
       yoyo: true,
@@ -29,5 +37,6 @@ export default class Cheese {
     this.phys.disableBody(true, true);
     this.view.destroy();
     this.shadow.destroy();
+    this.glow.destroy();
   }
 }

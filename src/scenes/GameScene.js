@@ -78,6 +78,15 @@ export default class GameScene extends Phaser.Scene {
       humans: this.humans,
     });
 
+    // Soft light that follows the mouse (additive over the dark floor)
+    this.playerLight = this.add
+      .image(0, 0, 'glow')
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setTint(COLORS.glowPlayer)
+      .setAlpha(0.5)
+      .setScale(3.4)
+      .setDepth(-90000);
+
     // Camera follows the mouse through the isometric world
     this.setupCamera();
 
@@ -90,17 +99,18 @@ export default class GameScene extends Phaser.Scene {
     this.setInvuln(800);
   }
 
-  update() {
+  update(time, delta) {
     if (this.transitioning) return;
 
     this.player.move(this.cursors, this.keys);
     this.player.sync();
+    this.playerLight.setPosition(this.player.view.x, this.player.view.y);
 
     const isWall = (x, y) => this.isWall(x, y);
     const losClear = (x1, y1, x2, y2) => this.losClear(x1, y1, x2, y2);
 
     for (const h of this.humans) {
-      h.patrol(this);
+      h.patrol(this, delta);
       const seen = h.canSee(this.player, losClear);
       h.detected = seen;
       h.drawCone(isWall);
@@ -131,12 +141,13 @@ export default class GameScene extends Phaser.Scene {
     return true;
   }
 
-  floorColor(x, y) {
-    if (x < 9 && y < 6) return COLORS.floorLivingRoom;
-    if (x < 9 && y > 6) return COLORS.floorWood;
-    if (x > 9 && y < 6) return COLORS.floorBedroom;
-    if (x > 9 && y > 6) return (x + y) % 2 === 0 ? COLORS.floorKitchenA : COLORS.floorKitchenB;
-    return COLORS.floorDoorway;
+  floorStyle(x, y) {
+    const r = COLORS.rooms;
+    if (x < 9 && y < 6) return r.living;
+    if (x < 9 && y > 6) return r.wood;
+    if (x > 9 && y < 6) return r.bedroom;
+    if (x > 9 && y > 6) return (x + y) % 2 === 0 ? r.kitchenA : r.kitchenB;
+    return r.doorway;
   }
 
   drawIsoFloor() {
@@ -152,9 +163,11 @@ export default class GameScene extends Phaser.Scene {
           { x: p.x, y: p.y + ISO_H },
           { x: p.x - ISO_W, y: p.y },
         ];
-        g.fillStyle(this.floorColor(x, y), 1);
+        const style = this.floorStyle(x, y);
+        g.fillStyle(style.fill, 1);
         g.fillPoints(diamond, true);
-        g.lineStyle(1, COLORS.floorEdge, 0.05);
+        // neon grid edge gives the floor its glow + texture
+        g.lineStyle(1.5, style.grid, 0.45);
         g.strokePoints(diamond, true);
       }
     }

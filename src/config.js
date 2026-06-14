@@ -10,26 +10,38 @@ export const GAME_HEIGHT = 572;
 export const MAX_LIVES = 5;
 
 // --- Isometric projection -------------------------------------------------
-// A tile diamond is (2*ISO_W) wide and (2*ISO_H) tall on screen. WALL_H is how
-// far walls/cubes rise off the floor, in screen pixels.
 export const ISO_W = 34;
 export const ISO_H = 19;
 export const WALL_H = 30;
 
-// Shared palette (warm, toy-like, cozy).
+// --- Neon palette ---------------------------------------------------------
+// Dark base everywhere; colour comes from glowing neon accents.
 export const COLORS = {
-  bg: 0x241e2b,
-  floorLivingRoom: 0xf0dcd4,
-  floorWood: 0xe6d6bf,
-  floorBedroom: 0xdde6ef,
-  floorKitchenA: 0xeef2f6,
-  floorKitchenB: 0xd6e6f3,
-  floorDoorway: 0xe9dcc7,
-  floorEdge: 0x000000,
-  wallTop: 0x9b88a6,
-  wallLeft: 0x6f5f79,
-  wallRight: 0x564860,
-  wallEdge: 0x42374c,
-  vision: 0xff5d5d,
-  visionAlert: 0xff2e2e,
+  bg: 0x070311,
+
+  // Each room: a near-black floor with one neon accent used for the tile grid.
+  rooms: {
+    living: { fill: 0x190a2e, grid: 0xff2bd6 }, // magenta
+    wood: { fill: 0x0a1430, grid: 0x00e5ff }, // cyan
+    bedroom: { fill: 0x06231d, grid: 0x39ff14 }, // green
+    kitchenA: { fill: 0x251139, grid: 0xffd400 }, // yellow
+    kitchenB: { fill: 0x0e2138, grid: 0xffd400 },
+    doorway: { fill: 0x130f24, grid: 0x9b5cff }, // purple
+  },
+
+  // Isometric wall cube
+  wallTop: 0x271642,
+  wallLeft: 0x1b0f30,
+  wallRight: 0x130a23,
+  wallRimTop: 0x00e5ff, // neon cyan top edge
+  wallRimSide: 0xff2bd6, // neon magenta vertical edges
+
+  // Vision cone
+  vision: 0xff1a5e,
+  visionAlert: 0xff5079,
+
+  // Glows
+  glowPlayer: 0x7af0ff, // cyan player light
+  glowCheese: 0xffe24a,
+  glowDonut: 0xff7ad0,
 };

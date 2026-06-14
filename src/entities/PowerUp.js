@@ -1,6 +1,7 @@
 // Donut power-up. Grants one extra life. Hovers with a soft glow.
 
 import { isoPos, isoDepth } from '../systems/iso.js';
+import { COLORS } from '../config.js';
 
 export default class PowerUp {
   constructor(scene, wx, wy) {
@@ -12,13 +13,17 @@ export default class PowerUp {
     const p = isoPos(wx, wy);
     const depth = isoDepth(wx, wy);
     this.shadow = scene.add.ellipse(p.x, p.y + 1, 20, 10, 0x000000, 0.16).setDepth(depth + 0.05);
-    this.halo = scene.add.circle(p.x, p.y - 8, 16, 0xffe39a, 0.35).setDepth(depth + 0.15);
+    this.halo = scene.add
+      .image(p.x, p.y - 6, 'glow')
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setTint(COLORS.glowDonut)
+      .setDepth(depth + 0.15);
     this.view = scene.add.image(p.x, p.y, 'donut').setOrigin(0.5, 0.9).setDepth(depth + 0.2);
 
     scene.tweens.add({
       targets: this.halo,
-      scale: { from: 0.8, to: 1.25 },
-      alpha: { from: 0.35, to: 0.1 },
+      scale: { from: 0.55, to: 0.85 },
+      alpha: { from: 0.7, to: 0.3 },
       duration: 900,
       yoyo: true,
       repeat: -1,

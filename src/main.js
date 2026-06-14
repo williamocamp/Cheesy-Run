@@ -10,7 +10,7 @@ const config = {
   parent: 'game',
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
-  backgroundColor: '#2b2430',
+  backgroundColor: '#070311',
   pixelArt: false,
   roundPixels: true,
   physics: {
