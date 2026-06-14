@@ -1,0 +1,11 @@
+{
+  "name": "cheesy-run",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cheesy Run — a Phaser 3 stealth game where a mouse collects cheese while dodging giant humans and traps.",
+  "scripts": {
+    "dev": "npx serve .",
+    "start": "npx serve ."
+  }
+}
