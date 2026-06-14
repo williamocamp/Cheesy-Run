@@ -6,13 +6,14 @@ import { isoPos, isoDepth, screenToWorldDir } from '../systems/iso.js';
 export default class Player {
   constructor(scene, wx, wy) {
     this.scene = scene;
-    this.speed = 168;
+    this.speed = 215;
+    this.scaleFactor = 0.78; // smaller mouse
     this.invuln = false;
     this.faceLeft = false;
     this.moving = false;
 
     // Dash (space bar): a short burst in the current heading, then a cooldown.
-    this.dashSpeed = 470;
+    this.dashSpeed = 560;
     this.dashDuration = 150; // ms of burst
     this.dashCooldownMax = 650; // ms before you can dash again
     this.dashTime = 0;
@@ -22,12 +23,12 @@ export default class Player {
     this.ghostTick = 0;
 
     this.phys = scene.physics.add.image(wx, wy, 'mouse').setVisible(false);
-    this.phys.body.setSize(20, 16);
+    this.phys.body.setSize(16, 13);
     this.phys.setCollideWorldBounds(true);
     this.phys.parentEntity = this;
 
-    this.shadow = scene.add.ellipse(0, 0, 26, 13, 0x000000, 0.22);
-    this.view = scene.add.sprite(0, 0, 'mouse').setOrigin(0.5, 0.92);
+    this.shadow = scene.add.ellipse(0, 0, 20, 10, 0x000000, 0.22);
+    this.view = scene.add.sprite(0, 0, 'mouse').setOrigin(0.5, 0.92).setScale(this.scaleFactor);
     this.sync();
   }
 
@@ -91,6 +92,7 @@ export default class Player {
     const ghost = this.scene.add
       .image(this.view.x, this.view.y, this.view.texture.key, this.view.frame.name)
       .setOrigin(0.5, 0.92)
+      .setScale(this.scaleFactor)
       .setFlipX(this.faceLeft)
       .setTint(0x8af0ff)
       .setAlpha(0.5)

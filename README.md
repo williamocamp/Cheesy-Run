@@ -33,8 +33,8 @@ npx serve .
 
 - Top-left HUD: cheese collected, lives (hearts), current floor
 - Bottom-right: circular minimap (player, cheese, humans, traps, power-ups)
-- Clear a floor and the next one has **more cheese, more traps, and faster humans**
-- Walls block both vision and the minimap-free line of sight, so use cover
+- Each room has its own furniture layout; walls **and** furniture block vision, so use them as cover
+- Clear a floor and the next one has **more cheese, more traps, faster humans, and a new colour theme**
 
 ## Project structure
 

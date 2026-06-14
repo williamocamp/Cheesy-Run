@@ -19,16 +19,6 @@ export const WALL_H = 30;
 export const COLORS = {
   bg: 0x070311,
 
-  // Each room: a near-black floor with one neon accent used for the tile grid.
-  rooms: {
-    living: { fill: 0x190a2e, grid: 0xff2bd6 }, // magenta
-    wood: { fill: 0x0a1430, grid: 0x00e5ff }, // cyan
-    bedroom: { fill: 0x06231d, grid: 0x39ff14 }, // green
-    kitchenA: { fill: 0x251139, grid: 0xffd400 }, // yellow
-    kitchenB: { fill: 0x0e2138, grid: 0xffd400 },
-    doorway: { fill: 0x130f24, grid: 0x9b5cff }, // purple
-  },
-
   // Isometric wall cube
   wallTop: 0x271642,
   wallLeft: 0x1b0f30,

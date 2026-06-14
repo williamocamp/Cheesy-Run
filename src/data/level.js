@@ -33,6 +33,21 @@ export function buildLevel() {
     if (x !== 3 && x !== 15) grid[6][x] = 1;
   }
 
+  // Per-room furniture (wall cells) — a distinct interior layout for each of
+  // the four rooms. Carefully placed to keep doorways, the spawn, and each
+  // human's patrol lane clear.
+  const furniture = [
+    // Top-left living room: couch + coffee table + plant
+    [1, 4], [2, 4], [5, 4], [6, 4], [7, 1],
+    // Top-right bedroom: bed + dresser
+    [12, 4], [13, 4], [16, 4], [17, 4],
+    // Bottom-left storage: shelves + crates
+    [1, 8], [2, 8], [5, 8], [6, 8],
+    // Bottom-right kitchen: counter island + fridge
+    [12, 10], [13, 10], [14, 10], [17, 10],
+  ];
+  for (const [fx, fy] of furniture) grid[fy][fx] = 1;
+
   // Player starts in the top-left living room.
   const spawn = { x: 3, y: 3 };
 

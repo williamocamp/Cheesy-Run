@@ -7,6 +7,7 @@ import { TILE, ISO_W, ISO_H, WALL_H, GAME_WIDTH, GAME_HEIGHT, MAX_LIVES, COLORS 
 import { isoPos, isoDepth } from '../systems/iso.js';
 import { buildLevel } from '../data/level.js';
 import { getFloorConfig, PATROL_ROUTES } from '../data/floors.js';
+import { getTheme } from '../data/themes.js';
 import Player from '../entities/Player.js';
 import Human from '../entities/Human.js';
 import Cheese from '../entities/Cheese.js';
@@ -31,12 +32,13 @@ export default class GameScene extends Phaser.Scene {
     this.W = level.W;
     this.H = level.H;
     this.cfg = getFloorConfig(this.floor);
+    this.theme = getTheme(this.floor);
     this.transitioning = false;
     this.invulnTween = null;
     this.physics.resume(); // in case we restarted from a paused game-over screen
 
     this.physics.world.setBounds(0, 0, this.W * TILE, this.H * TILE);
-    this.cameras.main.setBackgroundColor(COLORS.bg);
+    this.cameras.main.setBackgroundColor(this.theme.bg);
 
     this.registerAnims();
     this.drawIsoFloor();
@@ -161,7 +163,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   floorStyle(x, y) {
-    const r = COLORS.rooms;
+    const r = this.theme.rooms;
     if (x < 9 && y < 6) return r.living;
     if (x < 9 && y > 6) return r.wood;
     if (x > 9 && y < 6) return r.bedroom;
