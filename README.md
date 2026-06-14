@@ -23,6 +23,7 @@ npx serve .
 ## Controls
 
 - **WASD** or **Arrow keys** — move the mouse (relative to the screen: up = toward the top)
+- **Space** — dash: a short, fast burst in your current heading (brief cooldown)
 - Collect all cheese to clear the floor
 - Avoid the red vision cones (you get spotted) and the mouse traps
 - Grab a **donut** for an extra life

@@ -94,6 +94,7 @@ export default class GameScene extends Phaser.Scene {
     // Input
     this.cursors = this.input.keyboard.createCursorKeys();
     this.keys = this.input.keyboard.addKeys('W,A,S,D');
+    this.input.keyboard.addCapture('SPACE,UP,DOWN,LEFT,RIGHT'); // don't scroll the page
 
     if (!this.scene.isActive('UI')) this.scene.launch('UI');
 
@@ -103,7 +104,7 @@ export default class GameScene extends Phaser.Scene {
   update(time, delta) {
     if (this.transitioning) return;
 
-    this.player.move(this.cursors, this.keys);
+    this.player.move(this.cursors, this.keys, delta);
     this.player.sync();
     this.playerLight.setPosition(this.player.view.x, this.player.view.y);
 
