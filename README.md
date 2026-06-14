@@ -1,8 +1,13 @@
 # 🧀 Cheesy Run
 
-A cozy, toy-like **Phaser 3** stealth prototype. You play a tiny mouse sneaking
-through a giant apartment, collecting every wedge of cheese while dodging the
-humans' red vision cones and the snap traps on the floor.
+A cozy, toy-like **Phaser 3** stealth prototype with a **2.5D isometric** view.
+You play a tiny mouse sneaking through a giant apartment, collecting every wedge
+of cheese while dodging the humans' red vision cones and the snap traps on the
+floor.
+
+The game *simulates* in flat 2D (Arcade physics, collisions, vision) and only
+*renders* isometrically: every sprite is projected to an iso grid and
+depth-sorted, walls are raised cubes, and the camera follows the mouse.
 
 ## Play
 
@@ -17,7 +22,7 @@ npx serve .
 
 ## Controls
 
-- **WASD** or **Arrow keys** — move the mouse
+- **WASD** or **Arrow keys** — move the mouse (relative to the screen: up = toward the top)
 - Collect all cheese to clear the floor
 - Avoid the red vision cones (you get spotted) and the mouse traps
 - Grab a **donut** for an extra life
@@ -41,13 +46,14 @@ src/
     level.js           # apartment grid (rooms + doorways)
     floors.js          # difficulty curve + patrol routes
   scenes/
-    BootScene.js       # generates all sprite art from vector shapes
-    GameScene.js       # core gameplay loop
+    BootScene.js       # generates all sprite art (+ the iso wall cube)
+    GameScene.js       # core gameplay loop, iso rendering, camera
     UIScene.js         # HUD + minimap overlay
-  entities/
+  entities/            # each = invisible physics body + iso billboard view
     Player.js  Human.js  Cheese.js  Trap.js  PowerUp.js
   systems/
-    Minimap.js         # circular minimap renderer
+    iso.js             # isometric projection + screen->world input mapping
+    Minimap.js         # circular minimap renderer (top-down)
 ```
 
 No build step, no backend — all placeholder art is drawn at runtime.

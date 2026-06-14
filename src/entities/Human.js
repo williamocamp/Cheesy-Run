@@ -1,17 +1,13 @@
-// A patrolling human enemy with a red vision cone that respects walls.
+// A patrolling human enemy. Movement, facing and vision are all computed in
+// flat world space; the billboard view and the floor-projected vision cone are
+// rendered in isometric space.
 
 import { TILE } from '../config.js';
+import { isoPos, isoDepth } from '../systems/iso.js';
 
-export default class Human extends Phaser.Physics.Arcade.Sprite {
+export default class Human {
   constructor(scene, route, speed) {
-    super(scene, route[0].x, route[0].y, 'human');
-    scene.add.existing(this);
-    scene.physics.add.existing(this);
-    this.setDepth(8);
-    this.setImmovable(true);
-    this.body.setSize(24, 28);
-    this.body.setOffset(10, 30);
-
+    this.scene = scene;
     this.route = route;
     this.idx = 0;
     this.speed = speed;
@@ -20,70 +16,91 @@ export default class Human extends Phaser.Physics.Arcade.Sprite {
     this.fov = Phaser.Math.DegToRad(33);
     this.range = 6.2 * TILE;
 
+    this.phys = scene.physics.add.image(route[0].x, route[0].y, 'human').setVisible(false);
+    this.phys.body.setSize(22, 18);
+    this.phys.setImmovable(true);
+    this.phys.parentEntity = this;
+
+    this.shadow = scene.add.ellipse(0, 0, 34, 16, 0x000000, 0.22);
+    this.view = scene.add.image(0, 0, 'human').setOrigin(0.5, 0.95);
     this.cone = scene.add.graphics();
-    this.cone.setDepth(6);
+    this.cone.setDepth(-1000); // floor decal: above floor, below props/entities
+    this.sync();
   }
 
-  // Walk toward the current waypoint; advance when reached.
+  get x() { return this.phys.x; }
+  get y() { return this.phys.y; }
+  get active() { return this.phys.active; }
+
   patrol(scene) {
     let target = this.route[this.idx];
-    if (Phaser.Math.Distance.Between(this.x, this.y, target.x, target.y) < 5) {
+    if (Phaser.Math.Distance.Between(this.phys.x, this.phys.y, target.x, target.y) < 5) {
       this.idx = (this.idx + 1) % this.route.length;
       target = this.route[this.idx];
     }
-    this.facing = Math.atan2(target.y - this.y, target.x - this.x);
-    scene.physics.moveTo(this, target.x, target.y, this.speed);
+    this.facing = Math.atan2(target.y - this.phys.y, target.x - this.phys.x);
+    scene.physics.moveTo(this.phys, target.x, target.y, this.speed);
   }
 
-  // True if the player is inside the cone AND has line of sight.
   canSee(player, losClear) {
-    const dx = player.x - this.x;
-    const dy = player.y - this.y;
+    const dx = player.x - this.phys.x;
+    const dy = player.y - this.phys.y;
     const dist = Math.hypot(dx, dy);
     if (dist > this.range) return false;
-
     const diff = Phaser.Math.Angle.Wrap(Math.atan2(dy, dx) - this.facing);
     if (Math.abs(diff) > this.fov) return false;
-
-    return losClear(this.x, this.y, player.x, player.y);
+    return losClear(this.phys.x, this.phys.y, player.x, player.y);
   }
 
   drawCone(isWall) {
     const g = this.cone;
     g.clear();
     const color = this.detected ? 0xff2e2e : 0xff5d5d;
-    const alpha = this.detected ? 0.32 : 0.16;
+    const alpha = this.detected ? 0.34 : 0.18;
     g.fillStyle(color, alpha);
     g.lineStyle(2, color, 0.4);
 
-    const segs = 20;
-    g.beginPath();
-    g.moveTo(this.x, this.y);
+    const apex = isoPos(this.phys.x, this.phys.y);
+    const segs = 22;
+    const pts = [{ x: apex.x, y: apex.y }];
     for (let i = 0; i <= segs; i++) {
       const a = this.facing - this.fov + (2 * this.fov) * (i / segs);
       const d = this.castRay(a, isWall);
-      g.lineTo(this.x + Math.cos(a) * d, this.y + Math.sin(a) * d);
+      const wx = this.phys.x + Math.cos(a) * d;
+      const wy = this.phys.y + Math.sin(a) * d;
+      pts.push(isoPos(wx, wy));
     }
-    g.closePath();
-    g.fillPath();
-    g.strokePath();
+    g.fillPoints(pts, true);
+    g.strokePoints(pts, true);
   }
 
-  // March outward until a wall is hit, so the cone is clipped by geometry.
+  // March outward (in world space) until a wall blocks the ray.
   castRay(angle, isWall) {
     const step = 6;
     let d = step;
     while (d < this.range) {
-      const x = this.x + Math.cos(angle) * d;
-      const y = this.y + Math.sin(angle) * d;
+      const x = this.phys.x + Math.cos(angle) * d;
+      const y = this.phys.y + Math.sin(angle) * d;
       if (isWall(x, y)) return d;
       d += step;
     }
     return this.range;
   }
 
-  destroy(fromScene) {
-    if (this.cone) this.cone.destroy();
-    super.destroy(fromScene);
+  sync() {
+    const p = isoPos(this.phys.x, this.phys.y);
+    const depth = isoDepth(this.phys.x, this.phys.y);
+    this.view.setPosition(p.x, p.y);
+    this.view.setFlipX(Math.cos(this.facing) < 0);
+    this.view.setDepth(depth + 0.5);
+    this.shadow.setPosition(p.x, p.y + 1);
+    this.shadow.setDepth(depth + 0.05);
+  }
+
+  destroy() {
+    this.cone.destroy();
+    this.view.destroy();
+    this.shadow.destroy();
+    this.phys.destroy();
   }
 }

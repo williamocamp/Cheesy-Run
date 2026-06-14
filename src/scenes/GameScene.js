@@ -1,7 +1,10 @@
-// Core gameplay: builds a floor, spawns the mouse / cheese / traps / humans,
-// handles detection, lives, respawns, and floor progression.
+// Core gameplay. The simulation (movement, collisions, vision) runs in flat
+// world space; rendering is isometric. Builds a floor, spawns the mouse /
+// cheese / traps / humans, handles detection, lives, respawns, and floor
+// progression.
 
-import { TILE, GAME_WIDTH, GAME_HEIGHT, MAX_LIVES, COLORS } from '../config.js';
+import { TILE, ISO_W, ISO_H, WALL_H, GAME_WIDTH, GAME_HEIGHT, MAX_LIVES, COLORS } from '../config.js';
+import { isoPos, isoDepth } from '../systems/iso.js';
 import { buildLevel } from '../data/level.js';
 import { getFloorConfig, PATROL_ROUTES } from '../data/floors.js';
 import Player from '../entities/Player.js';
@@ -9,6 +12,8 @@ import Human from '../entities/Human.js';
 import Cheese from '../entities/Cheese.js';
 import Trap from '../entities/Trap.js';
 import PowerUp from '../entities/PowerUp.js';
+
+const WALL_ANCHOR_Y = (ISO_H + WALL_H) / (2 * ISO_H + WALL_H);
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -31,16 +36,15 @@ export default class GameScene extends Phaser.Scene {
     this.physics.resume(); // in case we restarted from a paused game-over screen
 
     this.physics.world.setBounds(0, 0, this.W * TILE, this.H * TILE);
-    this.cameras.main.setBounds(0, 0, this.W * TILE, this.H * TILE);
     this.cameras.main.setBackgroundColor(COLORS.bg);
 
-    this.drawBackground();
+    this.drawIsoFloor();
     this.buildWalls();
 
     // Player
     this.spawnPoint = { x: (level.spawn.x + 0.5) * TILE, y: (level.spawn.y + 0.5) * TILE };
     this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y);
-    this.physics.add.collider(this.player, this.walls);
+    this.physics.add.collider(this.player.phys, this.walls);
 
     // Collectibles + hazards
     this.freeCells = this.computeFreeCells(level.spawn);
@@ -53,12 +57,12 @@ export default class GameScene extends Phaser.Scene {
     this.humans = [];
     this.spawnHumans();
 
-    // Overlaps
-    this.physics.add.overlap(this.player, this.cheeseGroup, this.onCheese, null, this);
-    this.physics.add.overlap(this.player, this.trapGroup, this.onTrap, null, this);
-    this.physics.add.overlap(this.player, this.powerGroup, this.onPower, null, this);
+    // Overlaps (callbacks receive the physics bodies)
+    this.physics.add.overlap(this.player.phys, this.cheeseGroup, this.onCheese, null, this);
+    this.physics.add.overlap(this.player.phys, this.trapGroup, this.onTrap, null, this);
+    this.physics.add.overlap(this.player.phys, this.powerGroup, this.onPower, null, this);
 
-    // State -> registry (consumed by the UI scene)
+    // State -> registry (consumed by the UI scene; all in flat world coords)
     this.cheeseCollected = 0;
     this.cheeseTotal = this.cheeseGroup.countActive(true);
     this.registry.set('lives', this.lives);
@@ -74,13 +78,15 @@ export default class GameScene extends Phaser.Scene {
       humans: this.humans,
     });
 
+    // Camera follows the mouse through the isometric world
+    this.setupCamera();
+
     // Input
     this.cursors = this.input.keyboard.createCursorKeys();
     this.keys = this.input.keyboard.addKeys('W,A,S,D');
 
     if (!this.scene.isActive('UI')) this.scene.launch('UI');
 
-    // Brief grace period on (re)spawn
     this.setInvuln(800);
   }
 
@@ -88,6 +94,7 @@ export default class GameScene extends Phaser.Scene {
     if (this.transitioning) return;
 
     this.player.move(this.cursors, this.keys);
+    this.player.sync();
 
     const isWall = (x, y) => this.isWall(x, y);
     const losClear = (x1, y1, x2, y2) => this.losClear(x1, y1, x2, y2);
@@ -97,6 +104,7 @@ export default class GameScene extends Phaser.Scene {
       const seen = h.canSee(this.player, losClear);
       h.detected = seen;
       h.drawCone(isWall);
+      h.sync();
       if (seen && !this.player.invuln) {
         this.loseLife();
         break;
@@ -131,39 +139,23 @@ export default class GameScene extends Phaser.Scene {
     return COLORS.floorDoorway;
   }
 
-  drawBackground() {
+  drawIsoFloor() {
     const g = this.add.graphics();
-    g.setDepth(-10);
-
-    // Floor tiles
+    g.setDepth(-100000);
     for (let y = 0; y < this.H; y++) {
       for (let x = 0; x < this.W; x++) {
         if (this.grid[y][x] === 1) continue;
-        const px = x * TILE;
-        const py = y * TILE;
+        const p = isoPos((x + 0.5) * TILE, (y + 0.5) * TILE);
+        const diamond = [
+          { x: p.x, y: p.y - ISO_H },
+          { x: p.x + ISO_W, y: p.y },
+          { x: p.x, y: p.y + ISO_H },
+          { x: p.x - ISO_W, y: p.y },
+        ];
         g.fillStyle(this.floorColor(x, y), 1);
-        g.fillRect(px, py, TILE, TILE);
-        g.lineStyle(1, 0x000000, 0.04);
-        g.strokeRect(px + 0.5, py + 0.5, TILE - 1, TILE - 1);
-      }
-    }
-
-    // Walls (with faux-height top highlight + soft south shadow)
-    for (let y = 0; y < this.H; y++) {
-      for (let x = 0; x < this.W; x++) {
-        if (this.grid[y][x] !== 1) continue;
-        const px = x * TILE;
-        const py = y * TILE;
-        if (y + 1 < this.H && this.grid[y + 1][x] === 0) {
-          g.fillStyle(0x000000, 0.12);
-          g.fillRect(px, py + TILE, TILE, 8);
-        }
-        g.fillStyle(COLORS.wall, 1);
-        g.fillRect(px, py, TILE, TILE);
-        g.fillStyle(COLORS.wallTop, 1);
-        g.fillRect(px, py, TILE, TILE * 0.5);
-        g.lineStyle(1, COLORS.wallEdge, 0.6);
-        g.strokeRect(px + 0.5, py + 0.5, TILE - 1, TILE - 1);
+        g.fillPoints(diamond, true);
+        g.lineStyle(1, COLORS.floorEdge, 0.05);
+        g.strokePoints(diamond, true);
       }
     }
   }
@@ -173,16 +165,20 @@ export default class GameScene extends Phaser.Scene {
     for (let y = 0; y < this.H; y++) {
       for (let x = 0; x < this.W; x++) {
         if (this.grid[y][x] !== 1) continue;
-        const rect = this.add.rectangle(
-          x * TILE + TILE / 2,
-          y * TILE + TILE / 2,
-          TILE,
-          TILE,
-          0x000000,
-          0
-        );
+        const cx = x * TILE + TILE / 2;
+        const cy = y * TILE + TILE / 2;
+
+        // physics body (flat world space, invisible)
+        const rect = this.add.rectangle(cx, cy, TILE, TILE, 0x000000, 0);
         this.physics.add.existing(rect, true);
         this.walls.add(rect);
+
+        // isometric cube visual
+        const p = isoPos(cx, cy);
+        this.add
+          .image(p.x, p.y, 'wallcube')
+          .setOrigin(0.5, WALL_ANCHOR_Y)
+          .setDepth(isoDepth(cx, cy) + 0.4);
       }
     }
   }
@@ -206,15 +202,15 @@ export default class GameScene extends Phaser.Scene {
 
     for (let n = 0; n < this.cfg.cheese && i < this.freeCells.length; n++) {
       const p = toPx(next());
-      this.cheeseGroup.add(new Cheese(this, p.x, p.y));
+      this.cheeseGroup.add(new Cheese(this, p.x, p.y).phys);
     }
     for (let n = 0; n < this.cfg.traps && i < this.freeCells.length; n++) {
       const p = toPx(next());
-      this.trapGroup.add(new Trap(this, p.x, p.y));
+      this.trapGroup.add(new Trap(this, p.x, p.y).phys);
     }
     for (let n = 0; n < this.cfg.donuts && i < this.freeCells.length; n++) {
       const p = toPx(next());
-      this.powerGroup.add(new PowerUp(this, p.x, p.y));
+      this.powerGroup.add(new PowerUp(this, p.x, p.y).phys);
     }
   }
 
@@ -223,19 +219,47 @@ export default class GameScene extends Phaser.Scene {
       const tileRoute = PATROL_ROUTES[i % PATROL_ROUTES.length];
       const route = tileRoute.map((p) => ({ x: (p.x + 0.5) * TILE, y: (p.y + 0.5) * TILE }));
       const h = new Human(this, route, this.cfg.humanSpeed);
-      this.physics.add.collider(h, this.walls);
+      this.physics.add.collider(h.phys, this.walls);
       this.humans.push(h);
     }
   }
 
+  setupCamera() {
+    // Project the grid corners to find the isometric extent, then frame it.
+    const corners = [
+      isoPos(0, 0),
+      isoPos(this.W * TILE, 0),
+      isoPos(0, this.H * TILE),
+      isoPos(this.W * TILE, this.H * TILE),
+    ];
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const c of corners) {
+      minX = Math.min(minX, c.x);
+      maxX = Math.max(maxX, c.x);
+      minY = Math.min(minY, c.y);
+      maxY = Math.max(maxY, c.y);
+    }
+    const pad = 60;
+    this.cameras.main.setBounds(
+      minX - pad,
+      minY - WALL_H - pad,
+      maxX - minX + pad * 2,
+      maxY - minY + WALL_H + pad * 2
+    );
+    this.cameras.main.startFollow(this.player.view, true, 0.12, 0.12);
+  }
+
   // ---- gameplay events --------------------------------------------------
 
-  onCheese(player, cheese) {
-    if (!cheese.active) return;
-    cheese.disableBody(true, true);
+  onCheese(playerPhys, cheesePhys) {
+    if (!cheesePhys.active) return;
+    cheesePhys.parentEntity.collect();
     this.cheeseCollected += 1;
     this.registry.set('cheeseCollected', this.cheeseCollected);
-    this.popText(cheese.x, cheese.y, '+1', '#ffd24a');
+    this.popText(cheesePhys.x, cheesePhys.y, '+1', '#ffd24a');
     if (this.cheeseCollected >= this.cheeseTotal) this.floorComplete();
   }
 
@@ -243,28 +267,29 @@ export default class GameScene extends Phaser.Scene {
     this.loseLife();
   }
 
-  onPower(player, donut) {
-    if (!donut.active) return;
-    donut.disableBody(true, true);
+  onPower(playerPhys, donutPhys) {
+    if (!donutPhys.active) return;
+    donutPhys.parentEntity.collect();
     this.lives = Math.min(this.lives + 1, MAX_LIVES);
     this.registry.set('lives', this.lives);
     this.cameras.main.flash(150, 120, 255, 170);
-    this.popText(donut.x, donut.y, '+1 life', '#ff9ec7');
+    this.popText(donutPhys.x, donutPhys.y, '+1 life', '#ff9ec7');
   }
 
   loseLife() {
     if (this.player.invuln || this.transitioning) return;
     this.lives -= 1;
     this.registry.set('lives', this.lives);
-    this.cameras.main.shake(150, 0.008);
+    this.cameras.main.shake(150, 0.006);
     this.cameras.main.flash(160, 255, 90, 90);
     if (this.lives <= 0) this.gameOver();
     else this.respawn();
   }
 
   respawn() {
-    this.player.setVelocity(0, 0);
-    this.player.setPosition(this.spawnPoint.x, this.spawnPoint.y);
+    this.player.phys.setVelocity(0, 0);
+    this.player.phys.setPosition(this.spawnPoint.x, this.spawnPoint.y);
+    this.player.sync();
     this.setInvuln(1300);
   }
 
@@ -272,7 +297,7 @@ export default class GameScene extends Phaser.Scene {
     this.player.invuln = true;
     if (this.invulnTween) this.invulnTween.stop();
     this.invulnTween = this.tweens.add({
-      targets: this.player,
+      targets: this.player.view,
       alpha: 0.35,
       duration: 120,
       yoyo: true,
@@ -284,7 +309,7 @@ export default class GameScene extends Phaser.Scene {
         this.invulnTween.stop();
         this.invulnTween = null;
       }
-      this.player.setAlpha(1);
+      this.player.view.setAlpha(1);
     });
   }
 
@@ -293,7 +318,7 @@ export default class GameScene extends Phaser.Scene {
     this.transitioning = true;
     this.physics.pause();
     if (this.invulnTween) this.invulnTween.stop();
-    this.player.setAlpha(1);
+    this.player.view.setAlpha(1);
     this.showBanner(`Floor ${this.floor} Complete!`, 'Heading upstairs...');
     this.time.delayedCall(1700, () => {
       this.scene.restart({ floor: this.floor + 1, lives: this.lives });
@@ -304,7 +329,7 @@ export default class GameScene extends Phaser.Scene {
     this.transitioning = true;
     this.physics.pause();
     if (this.invulnTween) this.invulnTween.stop();
-    this.player.setAlpha(1);
+    this.player.view.setAlpha(1);
     this.showBanner('Game Over', 'Press Space or Tap to retry');
     const retry = () => this.scene.restart({ floor: 1, lives: 3 });
     this.input.keyboard.once('keydown-SPACE', retry);
@@ -319,7 +344,7 @@ export default class GameScene extends Phaser.Scene {
     this.add
       .rectangle(cx, cy, 440, 124, 0x2b2230, 0.88)
       .setScrollFactor(0)
-      .setDepth(1999)
+      .setDepth(99999)
       .setStrokeStyle(3, 0xffe0b0);
     this.add
       .text(cx, cy - 16, title, {
@@ -330,7 +355,7 @@ export default class GameScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setScrollFactor(0)
-      .setDepth(2000);
+      .setDepth(100000);
     this.add
       .text(cx, cy + 24, sub || '', {
         fontFamily: 'Arial, sans-serif',
@@ -339,22 +364,23 @@ export default class GameScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setScrollFactor(0)
-      .setDepth(2000);
+      .setDepth(100000);
   }
 
-  popText(x, y, msg, color) {
+  popText(wx, wy, msg, color) {
+    const p = isoPos(wx, wy);
     const t = this.add
-      .text(x, y, msg, {
+      .text(p.x, p.y, msg, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
         color,
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
-      .setDepth(50);
+      .setDepth(90000);
     this.tweens.add({
       targets: t,
-      y: y - 22,
+      y: p.y - 24,
       alpha: 0,
       duration: 650,
       ease: 'Cubic.out',

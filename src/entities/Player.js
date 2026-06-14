@@ -1,30 +1,62 @@
-// The mouse. Moves with WASD / arrow keys via Arcade physics.
+// The mouse. Physics body lives in flat world space; the billboard view is
+// projected into isometric space each frame.
 
-export default class Player extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, x, y) {
-    super(scene, x, y, 'mouse');
-    scene.add.existing(this);
-    scene.physics.add.existing(this);
-    this.setDepth(10);
-    this.setCollideWorldBounds(true);
-    this.body.setSize(20, 18);
-    this.body.setOffset(10, 14);
-    this.speed = 178;
+import { isoPos, isoDepth, screenToWorldDir } from '../systems/iso.js';
+
+export default class Player {
+  constructor(scene, wx, wy) {
+    this.scene = scene;
+    this.speed = 168;
     this.invuln = false;
+    this.faceLeft = false;
+
+    this.phys = scene.physics.add.image(wx, wy, 'mouse').setVisible(false);
+    this.phys.body.setSize(20, 16);
+    this.phys.setCollideWorldBounds(true);
+    this.phys.parentEntity = this;
+
+    this.shadow = scene.add.ellipse(0, 0, 26, 13, 0x000000, 0.22);
+    this.view = scene.add.image(0, 0, 'mouse').setOrigin(0.5, 0.92);
+    this.sync();
   }
 
+  get x() { return this.phys.x; }
+  get y() { return this.phys.y; }
+  get active() { return this.phys.active; }
+
   move(cursors, keys) {
-    let vx = 0;
-    let vy = 0;
-    if (cursors.left.isDown || keys.A.isDown) vx -= 1;
-    if (cursors.right.isDown || keys.D.isDown) vx += 1;
-    if (cursors.up.isDown || keys.W.isDown) vy -= 1;
-    if (cursors.down.isDown || keys.S.isDown) vy += 1;
+    let sx = 0;
+    let sy = 0;
+    if (cursors.left.isDown || keys.A.isDown) sx -= 1;
+    if (cursors.right.isDown || keys.D.isDown) sx += 1;
+    if (cursors.up.isDown || keys.W.isDown) sy -= 1;
+    if (cursors.down.isDown || keys.S.isDown) sy += 1;
 
-    const len = Math.hypot(vx, vy) || 1;
-    this.setVelocity((vx / len) * this.speed, (vy / len) * this.speed);
+    if (sx === 0 && sy === 0) {
+      this.phys.setVelocity(0, 0);
+    } else {
+      const d = screenToWorldDir(sx, sy);
+      const len = Math.hypot(d.x, d.y) || 1;
+      this.phys.setVelocity((d.x / len) * this.speed, (d.y / len) * this.speed);
+    }
+    if (sx < 0) this.faceLeft = true;
+    else if (sx > 0) this.faceLeft = false;
+  }
 
-    if (vx < 0) this.setFlipX(true);
-    else if (vx > 0) this.setFlipX(false);
+  sync() {
+    const p = isoPos(this.phys.x, this.phys.y);
+    const depth = isoDepth(this.phys.x, this.phys.y);
+    this.view.setPosition(p.x, p.y);
+    this.view.setFlipX(this.faceLeft);
+    this.view.setDepth(depth + 0.5);
+    this.shadow.setPosition(p.x, p.y + 1);
+    this.shadow.setDepth(depth + 0.05);
+    this.shadow.setVisible(this.view.visible);
+  }
+
+  destroy() {
+    this.view.destroy();
+    this.shadow.destroy();
+    this.phys.destroy();
   }
 }
