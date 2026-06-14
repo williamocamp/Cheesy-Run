@@ -26,8 +26,9 @@ export default class Human {
     this.phys.setImmovable(true);
     this.phys.parentEntity = this;
 
+    this.walking = false;
     this.shadow = scene.add.ellipse(0, 0, 34, 16, 0x000000, 0.22);
-    this.view = scene.add.image(0, 0, 'human').setOrigin(0.5, 0.95);
+    this.view = scene.add.sprite(0, 0, 'human').setOrigin(0.5, 0.95);
     this.cone = scene.add.graphics();
     this.cone.setDepth(-1000); // floor decal: above floor, below props/entities
     this.cone.setBlendMode(Phaser.BlendModes.ADD); // glowing neon light on the floor
@@ -54,8 +55,10 @@ export default class Human {
     const diff = Math.abs(Phaser.Math.Angle.Wrap(targetFacing - this.facing));
     if (diff > 0.35) {
       this.phys.setVelocity(0, 0);
+      this.walking = false; // pivoting in place at a corner
     } else {
       scene.physics.moveTo(this.phys, target.x, target.y, this.speed);
+      this.walking = true;
     }
   }
 
@@ -110,6 +113,11 @@ export default class Human {
     this.view.setPosition(p.x, p.y);
     this.view.setFlipX(Math.cos(this.facing) < 0);
     this.view.setDepth(depth + 0.5);
+    if (this.walking) this.view.play('human-walk', true);
+    else if (this.view.anims.isPlaying) {
+      this.view.stop();
+      this.view.setTexture('human');
+    }
     this.shadow.setPosition(p.x, p.y + 1);
     this.shadow.setDepth(depth + 0.05);
   }

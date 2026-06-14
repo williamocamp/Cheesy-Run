@@ -42,84 +42,114 @@ export default class BootScene extends Phaser.Scene {
     g.destroy();
   }
 
+  // Mouse: a neutral 'mouse' texture plus a 4-frame walk cycle
+  // ('mouse_walk0'..'mouse_walk3'). Feet alternate and the body bobs.
   makeMouse() {
+    const frames = [
+      { lf: [15, 41], rf: [25, 41], bob: 0, tail: 31 },
+      { lf: [13, 38], rf: [26, 41], bob: -1.5, tail: 34 },
+      { lf: [15, 41], rf: [25, 41], bob: 0, tail: 30 },
+      { lf: [17, 38], rf: [23, 41], bob: -1.5, tail: 34 },
+    ];
+    this.drawMouse('mouse', frames[0]);
+    frames.forEach((f, i) => this.drawMouse(`mouse_walk${i}`, f));
+  }
+
+  drawMouse(key, f) {
     const g = this.gfx();
+    const dy = f.bob;
     // tail
     g.lineStyle(4, 0xc98a6b, 1);
     g.beginPath();
-    g.moveTo(24, 40);
-    g.lineTo(34, 38);
-    g.lineTo(36, 31);
+    g.moveTo(24, 40 + dy);
+    g.lineTo(34, 38 + dy);
+    g.lineTo(36, f.tail + dy);
     g.strokePath();
-    // feet
+    // feet (stay on the ground)
     g.fillStyle(0xe7a9b6, 1);
-    g.fillEllipse(15, 41, 8, 5);
-    g.fillEllipse(25, 41, 8, 5);
-    // ears (with magenta inner glow)
+    g.fillEllipse(f.lf[0], f.lf[1], 8, 5);
+    g.fillEllipse(f.rf[0], f.rf[1], 8, 5);
+    // ears
     g.fillStyle(0x3a2550, 1);
-    g.fillCircle(10, 12, 8);
-    g.fillCircle(30, 12, 8);
+    g.fillCircle(10, 12 + dy, 8);
+    g.fillCircle(30, 12 + dy, 8);
     g.fillStyle(0xff7ad0, 1);
-    g.fillCircle(10, 12, 4);
-    g.fillCircle(30, 12, 4);
+    g.fillCircle(10, 12 + dy, 4);
+    g.fillCircle(30, 12 + dy, 4);
     // body (dark) with cyan neon rim
     g.fillStyle(0x2a1b3d, 1);
-    g.fillEllipse(20, 27, 30, 32);
+    g.fillEllipse(20, 27 + dy, 30, 32);
     g.lineStyle(2, 0x00e5ff, 0.9);
-    g.strokeEllipse(20, 27, 30, 32);
+    g.strokeEllipse(20, 27 + dy, 30, 32);
     // belly
     g.fillStyle(0x4a3568, 1);
-    g.fillEllipse(20, 31, 16, 18);
+    g.fillEllipse(20, 31 + dy, 16, 18);
     // backpack strap
     g.fillStyle(0xff2bd6, 1);
-    g.fillRoundedRect(14, 20, 12, 6, 3);
+    g.fillRoundedRect(14, 20 + dy, 12, 6, 3);
     // glowing eyes + nose
     g.fillStyle(0x9af7ff, 1);
-    g.fillCircle(15, 20, 2.8);
-    g.fillCircle(25, 20, 2.8);
+    g.fillCircle(15, 20 + dy, 2.8);
+    g.fillCircle(25, 20 + dy, 2.8);
     g.fillStyle(0xffffff, 1);
-    g.fillCircle(15.6, 19.3, 1);
-    g.fillCircle(25.6, 19.3, 1);
+    g.fillCircle(15.6, 19.3 + dy, 1);
+    g.fillCircle(25.6, 19.3 + dy, 1);
     g.fillStyle(0xff7ad0, 1);
-    g.fillCircle(20, 25, 2.2);
-    g.generateTexture('mouse', 40, 44);
+    g.fillCircle(20, 25 + dy, 2.2);
+    g.generateTexture(key, 40, 44);
     g.destroy();
   }
 
+  // Human: neutral 'human' plus a 4-frame walk cycle. Legs stride, arms swing,
+  // body bobs.
   makeHuman() {
+    const frames = [
+      { lf: [16, 56], rf: [27, 56], bob: 0, arm: 0 },
+      { lf: [14, 54], rf: [28, 56], bob: -1, arm: 2 },
+      { lf: [16, 56], rf: [27, 56], bob: 0, arm: 0 },
+      { lf: [18, 56], rf: [29, 54], bob: -1, arm: -2 },
+    ];
+    this.drawHuman('human', frames[0]);
+    frames.forEach((f, i) => this.drawHuman(`human_walk${i}`, f));
+  }
+
+  drawHuman(key, f) {
     const g = this.gfx();
-    // legs
+    const dy = f.bob;
+    // legs (rect from hip y=40 down to each foot, so they connect as feet move)
     g.fillStyle(0x1a1330, 1);
-    g.fillRoundedRect(13, 40, 7, 20, 3);
-    g.fillRoundedRect(24, 40, 7, 20, 3);
+    g.fillRoundedRect(f.lf[0] - 3, 40 + dy, 7, f.lf[1] - (40 + dy), 3);
+    g.fillRoundedRect(f.rf[0] - 3, 40 + dy, 7, f.rf[1] - (40 + dy), 3);
+    // shoes
     g.fillStyle(0x0c0820, 1);
-    g.fillRoundedRect(11, 56, 11, 6, 3);
-    g.fillRoundedRect(22, 56, 11, 6, 3);
+    g.fillRoundedRect(f.lf[0] - 5, f.lf[1], 11, 6, 3);
+    g.fillRoundedRect(f.rf[0] - 5, f.rf[1], 11, 6, 3);
     // torso (dark) with magenta neon rim
     g.fillStyle(0x2a1330, 1);
-    g.fillRoundedRect(10, 22, 24, 24, 8);
+    g.fillRoundedRect(10, 22 + dy, 24, 24, 8);
     g.lineStyle(2, 0xff2bd6, 0.9);
-    g.strokeRoundedRect(10, 22, 24, 24, 8);
-    // arms
+    g.strokeRoundedRect(10, 22 + dy, 24, 24, 8);
+    // arms (swing)
     g.fillStyle(0x2a1330, 1);
-    g.fillRoundedRect(5, 24, 7, 18, 3);
-    g.fillRoundedRect(32, 24, 7, 18, 3);
-    // hands + head
+    g.fillRoundedRect(5 + f.arm, 24 + dy, 7, 18, 3);
+    g.fillRoundedRect(32 - f.arm, 24 + dy, 7, 18, 3);
+    // hands
     g.fillStyle(0x6b4a63, 1);
-    g.fillCircle(8, 42, 3.5);
-    g.fillCircle(36, 42, 3.5);
+    g.fillCircle(8 + f.arm, 42 + dy, 3.5);
+    g.fillCircle(36 - f.arm, 42 + dy, 3.5);
+    // head + neon rim
     g.fillStyle(0x7a5570, 1);
-    g.fillCircle(22, 14, 11);
+    g.fillCircle(22, 14 + dy, 11);
     g.lineStyle(1.5, 0xff2bd6, 0.6);
-    g.strokeCircle(22, 14, 11);
+    g.strokeCircle(22, 14 + dy, 11);
     // hair
     g.fillStyle(0x241338, 1);
-    g.fillRoundedRect(12, 4, 20, 9, 5);
+    g.fillRoundedRect(12, 4 + dy, 20, 9, 5);
     // eyes (faint red glow)
     g.fillStyle(0xff5079, 1);
-    g.fillCircle(18, 14, 1.9);
-    g.fillCircle(26, 14, 1.9);
-    g.generateTexture('human', 44, 64);
+    g.fillCircle(18, 14 + dy, 1.9);
+    g.fillCircle(26, 14 + dy, 1.9);
+    g.generateTexture(key, 44, 64);
     g.destroy();
   }
 

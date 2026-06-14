@@ -38,6 +38,7 @@ export default class GameScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, this.W * TILE, this.H * TILE);
     this.cameras.main.setBackgroundColor(COLORS.bg);
 
+    this.registerAnims();
     this.drawIsoFloor();
     this.buildWalls();
 
@@ -120,6 +121,23 @@ export default class GameScene extends Phaser.Scene {
         break;
       }
     }
+  }
+
+  registerAnims() {
+    // Animations live on the global manager, so only create them once.
+    if (this.anims.exists('mouse-walk')) return;
+    this.anims.create({
+      key: 'mouse-walk',
+      frames: [0, 1, 2, 3].map((i) => ({ key: `mouse_walk${i}` })),
+      frameRate: 10,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: 'human-walk',
+      frames: [0, 1, 2, 3].map((i) => ({ key: `human_walk${i}` })),
+      frameRate: 8,
+      repeat: -1,
+    });
   }
 
   // ---- world helpers ----------------------------------------------------

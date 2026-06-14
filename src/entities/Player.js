@@ -9,6 +9,7 @@ export default class Player {
     this.speed = 168;
     this.invuln = false;
     this.faceLeft = false;
+    this.moving = false;
 
     this.phys = scene.physics.add.image(wx, wy, 'mouse').setVisible(false);
     this.phys.body.setSize(20, 16);
@@ -16,7 +17,7 @@ export default class Player {
     this.phys.parentEntity = this;
 
     this.shadow = scene.add.ellipse(0, 0, 26, 13, 0x000000, 0.22);
-    this.view = scene.add.image(0, 0, 'mouse').setOrigin(0.5, 0.92);
+    this.view = scene.add.sprite(0, 0, 'mouse').setOrigin(0.5, 0.92);
     this.sync();
   }
 
@@ -41,6 +42,7 @@ export default class Player {
     }
     if (sx < 0) this.faceLeft = true;
     else if (sx > 0) this.faceLeft = false;
+    this.moving = sx !== 0 || sy !== 0;
   }
 
   sync() {
@@ -49,6 +51,11 @@ export default class Player {
     this.view.setPosition(p.x, p.y);
     this.view.setFlipX(this.faceLeft);
     this.view.setDepth(depth + 0.5);
+    if (this.moving) this.view.play('mouse-walk', true);
+    else if (this.view.anims.isPlaying) {
+      this.view.stop();
+      this.view.setTexture('mouse');
+    }
     this.shadow.setPosition(p.x, p.y + 1);
     this.shadow.setDepth(depth + 0.05);
     this.shadow.setVisible(this.view.visible);
