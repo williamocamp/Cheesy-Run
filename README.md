@@ -63,3 +63,19 @@ vercel             # from this folder; accept the defaults
 
 Or import the repo in the Vercel dashboard and set the **Root Directory** to
 `cheesy-run/`. No framework preset or build command is required.
+
+### Auto-deploy via GitHub Actions
+
+`.github/workflows/deploy.yml` deploys to Vercel production on every push to
+`main`. It needs three repository secrets
+(**Settings → Secrets and variables → Actions**):
+
+| Secret | Where to find it |
+| --- | --- |
+| `VERCEL_TOKEN` | Vercel → Account Settings → Tokens → create one |
+| `VERCEL_ORG_ID` | run `vercel link` locally, then read `.vercel/project.json` (`orgId`) |
+| `VERCEL_PROJECT_ID` | same file, `projectId` |
+
+> If you also keep Vercel's built-in Git integration enabled, you'll get two
+> deploys per push. Pick one: either remove this workflow, or disconnect the
+> Git integration in the Vercel project settings.
