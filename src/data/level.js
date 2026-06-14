@@ -51,5 +51,13 @@ export function buildLevel() {
   // Player starts in the top-left living room.
   const spawn = { x: 3, y: 3 };
 
-  return { grid, W, H, spawn };
+  // The single-cell gaps between rooms. Traps must never block these.
+  const doors = [
+    { x: 9, y: 4 },
+    { x: 9, y: 8 },
+    { x: 3, y: 6 },
+    { x: 15, y: 6 },
+  ];
+
+  return { grid, W, H, spawn, doors };
 }

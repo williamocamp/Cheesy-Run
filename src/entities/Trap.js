@@ -24,4 +24,10 @@ export default class Trap {
   }
 
   get active() { return this.phys.active; }
+
+  remove() {
+    this.phys.disableBody(true, true);
+    this.view.destroy();
+    this.shadow.destroy();
+  }
 }

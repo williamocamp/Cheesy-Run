@@ -50,6 +50,8 @@ export default class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.player.phys, this.walls);
 
     // Collectibles + hazards
+    this.pendingTrap = null;
+    this.trapForbidden = this.buildTrapForbidden(level.doors);
     this.freeCells = this.computeFreeCells(level.spawn);
     this.cheeseGroup = this.physics.add.group();
     this.trapGroup = this.physics.add.group();
@@ -229,21 +231,49 @@ export default class GameScene extends Phaser.Scene {
     return Phaser.Utils.Array.Shuffle(cells);
   }
 
+  // Doorway cells (and the tiles right beside them) where a trap would block a
+  // choke point. Traps are kept off these.
+  buildTrapForbidden(doors) {
+    const set = new Set();
+    for (const d of doors || []) {
+      set.add(`${d.x},${d.y}`);
+      set.add(`${d.x + 1},${d.y}`);
+      set.add(`${d.x - 1},${d.y}`);
+      set.add(`${d.x},${d.y + 1}`);
+      set.add(`${d.x},${d.y - 1}`);
+    }
+    return set;
+  }
+
   placeEntities() {
     let i = 0;
-    const next = () => this.freeCells[i++];
     const toPx = (c) => ({ x: (c.x + 0.5) * TILE, y: (c.y + 0.5) * TILE });
+    // Pull the next cell; when `avoid` is given, skip forbidden cells.
+    const nextCell = (avoid) => {
+      while (i < this.freeCells.length) {
+        const c = this.freeCells[i++];
+        if (avoid && avoid.has(`${c.x},${c.y}`)) continue;
+        return c;
+      }
+      return null;
+    };
 
-    for (let n = 0; n < this.cfg.cheese && i < this.freeCells.length; n++) {
-      const p = toPx(next());
+    for (let n = 0; n < this.cfg.cheese; n++) {
+      const c = nextCell(null);
+      if (!c) break;
+      const p = toPx(c);
       this.cheeseGroup.add(new Cheese(this, p.x, p.y).phys);
     }
-    for (let n = 0; n < this.cfg.traps && i < this.freeCells.length; n++) {
-      const p = toPx(next());
+    for (let n = 0; n < this.cfg.traps; n++) {
+      const c = nextCell(this.trapForbidden);
+      if (!c) break;
+      const p = toPx(c);
       this.trapGroup.add(new Trap(this, p.x, p.y).phys);
     }
-    for (let n = 0; n < this.cfg.donuts && i < this.freeCells.length; n++) {
-      const p = toPx(next());
+    for (let n = 0; n < this.cfg.donuts; n++) {
+      const c = nextCell(null);
+      if (!c) break;
+      const p = toPx(c);
       this.powerGroup.add(new PowerUp(this, p.x, p.y).phys);
     }
   }
@@ -297,7 +327,10 @@ export default class GameScene extends Phaser.Scene {
     if (this.cheeseCollected >= this.cheeseTotal) this.floorComplete();
   }
 
-  onTrap() {
+  onTrap(playerPhys, trapPhys) {
+    if (this.player.invuln || this.transitioning) return;
+    // Remember the trap that sprung so it vanishes when the mouse respawns.
+    this.pendingTrap = trapPhys.parentEntity;
     this.loseLife();
   }
 
@@ -321,6 +354,11 @@ export default class GameScene extends Phaser.Scene {
   }
 
   respawn() {
+    // A trap that caught us disappears on respawn.
+    if (this.pendingTrap) {
+      this.pendingTrap.remove();
+      this.pendingTrap = null;
+    }
     this.player.phys.setVelocity(0, 0);
     this.player.phys.setPosition(this.spawnPoint.x, this.spawnPoint.y);
     this.player.sync();
