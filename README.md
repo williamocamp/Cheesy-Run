@@ -33,8 +33,9 @@ npx serve .
 
 - Top-left HUD: cheese collected, lives (hearts), current floor
 - Bottom-right: circular minimap (player, cheese, humans, traps, power-ups)
-- Each room has its own furniture layout; walls **and** furniture block vision, so use them as cover
-- Clear a floor and the next one has **more cheese, more traps, faster humans, and a new colour theme**
+- **Each floor is a different tenant's apartment** — its own room types (living room, bedroom, kitchen, bathroom), colour scheme, and furniture layout
+- Walls **and** furniture block vision, so use them as cover
+- Clear a floor and the next one has **more cheese, more traps, faster humans, and a whole new apartment**
 
 ## Project structure
 

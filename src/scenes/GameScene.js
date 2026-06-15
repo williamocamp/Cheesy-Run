@@ -7,7 +7,7 @@ import { TILE, ISO_W, ISO_H, WALL_H, GAME_WIDTH, GAME_HEIGHT, MAX_LIVES, COLORS 
 import { isoPos, isoDepth } from '../systems/iso.js';
 import { buildLevel } from '../data/level.js';
 import { getFloorConfig, PATROL_ROUTES } from '../data/floors.js';
-import { getTheme } from '../data/themes.js';
+import { getApartment } from '../data/apartments.js';
 import Player from '../entities/Player.js';
 import Human from '../entities/Human.js';
 import Cheese from '../entities/Cheese.js';
@@ -27,18 +27,18 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create() {
-    const level = buildLevel();
+    this.apartment = getApartment(this.floor);
+    const level = buildLevel(this.apartment);
     this.grid = level.grid;
     this.W = level.W;
     this.H = level.H;
     this.cfg = getFloorConfig(this.floor);
-    this.theme = getTheme(this.floor);
     this.transitioning = false;
     this.invulnTween = null;
     this.physics.resume(); // in case we restarted from a paused game-over screen
 
     this.physics.world.setBounds(0, 0, this.W * TILE, this.H * TILE);
-    this.cameras.main.setBackgroundColor(this.theme.bg);
+    this.cameras.main.setBackgroundColor(this.apartment.bg);
 
     this.registerAnims();
     this.drawIsoFloor();
@@ -72,6 +72,7 @@ export default class GameScene extends Phaser.Scene {
     this.cheeseTotal = this.cheeseGroup.countActive(true);
     this.registry.set('lives', this.lives);
     this.registry.set('floor', this.floor);
+    this.registry.set('floorName', this.apartment.name);
     this.registry.set('cheeseCollected', 0);
     this.registry.set('cheeseTotal', this.cheeseTotal);
     this.registry.set('bounds', { w: this.W * TILE, h: this.H * TILE });
@@ -154,13 +155,22 @@ export default class GameScene extends Phaser.Scene {
     return true;
   }
 
+  quadrantOf(x, y) {
+    if (x < 9 && y < 6) return 'LT';
+    if (x > 9 && y < 6) return 'RT';
+    if (x < 9 && y > 6) return 'LB';
+    if (x > 9 && y > 6) return 'RB';
+    return null; // central hallway / doorways
+  }
+
+  // A wall cell is structural (the shell) rather than furniture.
+  isStructural(x, y) {
+    return x === 0 || y === 0 || x === this.W - 1 || y === this.H - 1 || x === 9 || y === 6;
+  }
+
   floorStyle(x, y) {
-    const r = this.theme.rooms;
-    if (x < 9 && y < 6) return r.living;
-    if (x < 9 && y > 6) return r.wood;
-    if (x > 9 && y < 6) return r.bedroom;
-    if (x > 9 && y > 6) return (x + y) % 2 === 0 ? r.kitchenA : r.kitchenB;
-    return r.doorway;
+    const q = this.quadrantOf(x, y);
+    return q ? this.apartment.quadrants[q] : this.apartment.hallway;
   }
 
   drawIsoFloor() {
@@ -179,7 +189,7 @@ export default class GameScene extends Phaser.Scene {
         const style = this.floorStyle(x, y);
         g.fillStyle(style.fill, 1);
         g.fillPoints(diamond, true);
-        // neon grid edge gives the floor its glow + texture
+        // soft grid edge gives the floor its tile texture
         g.lineStyle(1.5, style.grid, 0.45);
         g.strokePoints(diamond, true);
       }
@@ -199,24 +209,44 @@ export default class GameScene extends Phaser.Scene {
         this.physics.add.existing(rect, true);
         this.walls.add(rect);
 
-        // isometric cube visual
+        // isometric cube visual — furniture is tinted by its room
         const p = isoPos(cx, cy);
-        this.add
+        const cube = this.add
           .image(p.x, p.y, 'wallcube')
           .setOrigin(0.5, WALL_ANCHOR_Y)
           .setDepth(isoDepth(cx, cy) + 0.4);
+        if (!this.isStructural(x, y)) {
+          const q = this.quadrantOf(x, y);
+          const tint = q && this.apartment.quadrants[q] && this.apartment.quadrants[q].furnitureTint;
+          if (tint) cube.setTint(tint);
+        }
       }
     }
   }
 
+  // Only cells reachable (4-way) from the spawn are eligible for cheese / traps
+  // / power-ups, so furniture can never strand a pickup in a sealed pocket.
   computeFreeCells(spawn) {
-    const cells = [];
-    for (let y = 1; y < this.H - 1; y++) {
-      for (let x = 1; x < this.W - 1; x++) {
-        if (this.grid[y][x] !== 0) continue;
-        if (Math.abs(x - spawn.x) + Math.abs(y - spawn.y) <= 2) continue;
-        cells.push({ x, y });
+    const reach = new Set([`${spawn.x},${spawn.y}`]);
+    const queue = [[spawn.x, spawn.y]];
+    const steps = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    while (queue.length) {
+      const [x, y] = queue.shift();
+      for (const [dx, dy] of steps) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= this.W || ny >= this.H) continue;
+        const key = `${nx},${ny}`;
+        if (reach.has(key) || this.grid[ny][nx] !== 0) continue;
+        reach.add(key);
+        queue.push([nx, ny]);
       }
+    }
+    const cells = [];
+    for (const key of reach) {
+      const [x, y] = key.split(',').map(Number);
+      if (Math.abs(x - spawn.x) + Math.abs(y - spawn.y) <= 2) continue;
+      cells.push({ x, y });
     }
     return Phaser.Utils.Array.Shuffle(cells);
   }

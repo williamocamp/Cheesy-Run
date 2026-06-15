@@ -1,10 +1,33 @@
 // Builds the apartment grid for a floor.
 // 0 = floor, 1 = wall. The layout is four rooms around a central cross of
-// walls, with doorways punched through so every room is reachable.
+// walls, with doorways punched through so every room is reachable. The given
+// apartment's furniture is then stamped in (skipping any cell that would block
+// a doorway, the spawn, or a human patrol lane).
 
 import { GRID_W, GRID_H } from '../config.js';
 
-export function buildLevel() {
+// Cells that furniture must never occupy: spawn, doorways + their approaches,
+// and the four patrol lanes.
+function buildForbidden() {
+  const set = new Set();
+  const add = (x, y) => set.add(`${x},${y}`);
+  // spawn + breathing room
+  [[3, 3], [2, 3], [4, 3], [3, 2], [3, 4]].forEach(([x, y]) => add(x, y));
+  // doorways + approach tiles on each side
+  [
+    [9, 4], [8, 4], [10, 4],
+    [9, 8], [8, 8], [10, 8],
+    [3, 6], [3, 5], [3, 7],
+    [15, 6], [15, 5], [15, 7],
+  ].forEach(([x, y]) => add(x, y));
+  // patrol lanes
+  for (let x = 12; x <= 17; x++) { add(x, 2); add(x, 8); }
+  for (let x = 2; x <= 7; x++) add(x, 10);
+  for (let x = 5; x <= 8; x++) add(x, 2);
+  return set;
+}
+
+export function buildLevel(apartment) {
   const W = GRID_W;
   const H = GRID_H;
 
@@ -33,20 +56,18 @@ export function buildLevel() {
     if (x !== 3 && x !== 15) grid[6][x] = 1;
   }
 
-  // Per-room furniture (wall cells) — a distinct interior layout for each of
-  // the four rooms. Carefully placed to keep doorways, the spawn, and each
-  // human's patrol lane clear.
-  const furniture = [
-    // Top-left living room: couch + coffee table + plant
-    [1, 4], [2, 4], [5, 4], [6, 4], [7, 1],
-    // Top-right bedroom: bed + dresser
-    [12, 4], [13, 4], [16, 4], [17, 4],
-    // Bottom-left storage: shelves + crates
-    [1, 8], [2, 8], [5, 8], [6, 8],
-    // Bottom-right kitchen: counter island + fridge
-    [12, 10], [13, 10], [14, 10], [17, 10],
-  ];
-  for (const [fx, fy] of furniture) grid[fy][fx] = 1;
+  // Stamp in this apartment's furniture, skipping protected cells.
+  const forbidden = buildForbidden();
+  if (apartment) {
+    for (const key of ['LT', 'RT', 'LB', 'RB']) {
+      const quad = apartment.quadrants[key];
+      if (!quad || !quad.furniture) continue;
+      for (const [fx, fy] of quad.furniture) {
+        if (forbidden.has(`${fx},${fy}`)) continue;
+        if (grid[fy] && grid[fy][fx] === 0) grid[fy][fx] = 1;
+      }
+    }
+  }
 
   // Player starts in the top-left living room.
   const spawn = { x: 3, y: 3 };

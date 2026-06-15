@@ -49,6 +49,19 @@ export default class UIScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(60);
 
+    // Resident / apartment name
+    this.nameText = this.add
+      .text(18, 102, '', {
+        ...font,
+        fontSize: '13px',
+        color: '#fff7ea',
+        fontStyle: 'italic',
+        stroke: '#4a3526',
+        strokeThickness: 3,
+      })
+      .setScrollFactor(0)
+      .setDepth(60);
+
     // Title
     this.add
       .text(GAME_WIDTH / 2, 16, 'Cheesy Run', {
@@ -78,9 +91,11 @@ export default class UIScene extends Phaser.Scene {
     const total = this.registry.get('cheeseTotal') || 0;
     const lives = this.registry.get('lives') || 0;
     const floor = this.registry.get('floor') || 1;
+    const floorName = this.registry.get('floorName') || '';
 
     this.cheeseText.setText(`${collected}/${total}`);
     this.floorText.setText(`Floor ${floor}`);
+    this.nameText.setText(floorName);
     this.hearts.forEach((h, i) => h.setAlpha(i < lives ? 1 : 0.18));
   }
 
