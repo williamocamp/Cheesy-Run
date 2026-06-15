@@ -9,19 +9,23 @@ export default class Human {
   constructor(scene, route, speed) {
     this.scene = scene;
     this.route = route;
-    this.idx = 0;
-    this.speed = speed;
     this.detected = false;
     this.fov = Phaser.Math.DegToRad(33);
     this.range = 6.2 * TILE;
-    this.turnSpeed = 3.4; // radians/sec — how fast they pivot
+    // Per-human jitter so multiple people never pace or pivot in sync.
+    this.speed = speed * Phaser.Math.FloatBetween(0.78, 1.28);
+    this.turnSpeed = 3.4 * Phaser.Math.FloatBetween(0.7, 1.35);
 
-    // Start already facing along the first leg so they don't spin on spawn.
-    const a = route[0];
-    const b = route[1 % route.length];
-    this.facing = Math.atan2(b.y - a.y, b.x - a.x);
+    // Start at a random point/phase along the route (not all at waypoint 0).
+    const s = Phaser.Math.Between(0, route.length - 1);
+    const next = (s + 1) % route.length;
+    const t = Phaser.Math.FloatBetween(0.1, 0.9);
+    const startX = Phaser.Math.Linear(route[s].x, route[next].x, t);
+    const startY = Phaser.Math.Linear(route[s].y, route[next].y, t);
+    this.idx = next;
+    this.facing = Math.atan2(route[next].y - startY, route[next].x - startX);
 
-    this.phys = scene.physics.add.image(route[0].x, route[0].y, 'human').setVisible(false);
+    this.phys = scene.physics.add.image(startX, startY, 'human').setVisible(false);
     this.phys.body.setSize(22, 18);
     this.phys.setImmovable(true);
     this.phys.parentEntity = this;
