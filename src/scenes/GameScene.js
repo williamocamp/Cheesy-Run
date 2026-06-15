@@ -3,7 +3,7 @@
 // cheese / traps / humans, handles detection, lives, respawns, and floor
 // progression.
 
-import { TILE, ISO_W, ISO_H, WALL_H, GAME_WIDTH, GAME_HEIGHT, MAX_LIVES, COLORS } from '../config.js';
+import { TILE, ISO_W, ISO_H, WALL_H, FURN_MAX_H, GAME_WIDTH, GAME_HEIGHT, MAX_LIVES, COLORS } from '../config.js';
 import { isoPos, isoDepth } from '../systems/iso.js';
 import { buildLevel } from '../data/level.js';
 import { getFloorConfig, PATROL_ROUTES } from '../data/floors.js';
@@ -15,6 +15,7 @@ import Trap from '../entities/Trap.js';
 import PowerUp from '../entities/PowerUp.js';
 
 const WALL_ANCHOR_Y = (ISO_H + WALL_H) / (2 * ISO_H + WALL_H);
+const FURN_ANCHOR_Y = (ISO_H + FURN_MAX_H) / (2 * ISO_H + FURN_MAX_H);
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -32,6 +33,7 @@ export default class GameScene extends Phaser.Scene {
     this.grid = level.grid;
     this.W = level.W;
     this.H = level.H;
+    this.furnitureMap = level.furniture;
     this.cfg = getFloorConfig(this.floor);
     this.transitioning = false;
     this.invulnTween = null;
@@ -163,11 +165,6 @@ export default class GameScene extends Phaser.Scene {
     return null; // central hallway / doorways
   }
 
-  // A wall cell is structural (the shell) rather than furniture.
-  isStructural(x, y) {
-    return x === 0 || y === 0 || x === this.W - 1 || y === this.H - 1 || x === 9 || y === 6;
-  }
-
   floorStyle(x, y) {
     const q = this.quadrantOf(x, y);
     return q ? this.apartment.quadrants[q] : this.apartment.hallway;
@@ -209,16 +206,14 @@ export default class GameScene extends Phaser.Scene {
         this.physics.add.existing(rect, true);
         this.walls.add(rect);
 
-        // isometric cube visual — furniture is tinted by its room
+        // furniture gets its own object texture; the shell uses a wall cube
         const p = isoPos(cx, cy);
-        const cube = this.add
-          .image(p.x, p.y, 'wallcube')
-          .setOrigin(0.5, WALL_ANCHOR_Y)
-          .setDepth(isoDepth(cx, cy) + 0.4);
-        if (!this.isStructural(x, y)) {
-          const q = this.quadrantOf(x, y);
-          const tint = q && this.apartment.quadrants[q] && this.apartment.quadrants[q].furnitureTint;
-          if (tint) cube.setTint(tint);
+        const depth = isoDepth(cx, cy) + 0.4;
+        const ftype = this.furnitureMap && this.furnitureMap.get(`${x},${y}`);
+        if (ftype && this.textures.exists(`furn_${ftype}`)) {
+          this.add.image(p.x, p.y, `furn_${ftype}`).setOrigin(0.5, FURN_ANCHOR_Y).setDepth(depth);
+        } else {
+          this.add.image(p.x, p.y, 'wallcube').setOrigin(0.5, WALL_ANCHOR_Y).setDepth(depth);
         }
       }
     }

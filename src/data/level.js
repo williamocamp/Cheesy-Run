@@ -56,15 +56,20 @@ export function buildLevel(apartment) {
     if (x !== 3 && x !== 15) grid[6][x] = 1;
   }
 
-  // Stamp in this apartment's furniture, skipping protected cells.
+  // Stamp in this apartment's furniture, skipping protected cells. `furniture`
+  // maps each placed cell "x,y" to its object type so it gets the right texture.
   const forbidden = buildForbidden();
+  const furniture = new Map();
   if (apartment) {
     for (const key of ['LT', 'RT', 'LB', 'RB']) {
       const quad = apartment.quadrants[key];
       if (!quad || !quad.furniture) continue;
-      for (const [fx, fy] of quad.furniture) {
+      for (const [fx, fy, type] of quad.furniture) {
         if (forbidden.has(`${fx},${fy}`)) continue;
-        if (grid[fy] && grid[fy][fx] === 0) grid[fy][fx] = 1;
+        if (grid[fy] && grid[fy][fx] === 0) {
+          grid[fy][fx] = 1;
+          furniture.set(`${fx},${fy}`, type || 'crate');
+        }
       }
     }
   }
@@ -80,5 +85,5 @@ export function buildLevel(apartment) {
     { x: 15, y: 6 },
   ];
 
-  return { grid, W, H, spawn, doors };
+  return { grid, W, H, spawn, doors, furniture };
 }

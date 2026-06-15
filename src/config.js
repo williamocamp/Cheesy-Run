@@ -13,6 +13,7 @@ export const MAX_LIVES = 5;
 export const ISO_W = 34;
 export const ISO_H = 19;
 export const WALL_H = 30;
+export const FURN_MAX_H = 46; // tallest furniture (fridge, wardrobe, lamp) fits the texture canvas
 
 // --- Neon palette ---------------------------------------------------------
 // Dark base everywhere; colour comes from glowing neon accents.
