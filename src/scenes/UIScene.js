@@ -15,7 +15,14 @@ export default class UIScene extends Phaser.Scene {
     // Cheese counter
     this.add.image(34, 30, 'cheese').setScrollFactor(0).setScale(1.15).setDepth(60);
     this.cheeseText = this.add
-      .text(54, 18, '0/0', { ...font, fontSize: '24px', color: '#fff8e7', fontStyle: 'bold' })
+      .text(54, 18, '0/0', {
+        ...font,
+        fontSize: '24px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+        stroke: '#4a3526',
+        strokeThickness: 5,
+      })
       .setScrollFactor(0)
       .setDepth(60);
 
@@ -31,7 +38,14 @@ export default class UIScene extends Phaser.Scene {
 
     // Floor label
     this.floorText = this.add
-      .text(18, 80, 'Floor 1', { ...font, fontSize: '18px', color: '#ffe0b0', fontStyle: 'bold' })
+      .text(18, 80, 'Floor 1', {
+        ...font,
+        fontSize: '18px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+        stroke: '#4a3526',
+        strokeThickness: 4,
+      })
       .setScrollFactor(0)
       .setDepth(60);
 
@@ -40,8 +54,10 @@ export default class UIScene extends Phaser.Scene {
       .text(GAME_WIDTH / 2, 16, 'Cheesy Run', {
         ...font,
         fontSize: '26px',
-        color: '#fff8e7',
+        color: '#ffffff',
         fontStyle: 'bold',
+        stroke: '#4a3526',
+        strokeThickness: 6,
       })
       .setOrigin(0.5, 0)
       .setScrollFactor(0)

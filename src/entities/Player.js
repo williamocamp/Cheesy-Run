@@ -69,7 +69,7 @@ export default class Player {
       this.dashTime = this.dashDuration;
       this.dashCooldown = this.dashCooldownMax;
       this.phys.setVelocity(dd.x * this.dashSpeed, dd.y * this.dashSpeed);
-      this.scene.cameras.main.flash(90, 120, 240, 255);
+      this.scene.cameras.main.flash(90, 255, 250, 220);
     }
 
     // While dashing, hold the burst velocity and leave a neon trail.
@@ -94,8 +94,7 @@ export default class Player {
       .setOrigin(0.5, 0.92)
       .setScale(this.scaleFactor)
       .setFlipX(this.faceLeft)
-      .setTint(0x8af0ff)
-      .setAlpha(0.5)
+      .setAlpha(0.45)
       .setDepth(this.view.depth - 0.01);
     this.scene.tweens.add({
       targets: ghost,

@@ -31,7 +31,7 @@ export default class Human {
     this.view = scene.add.sprite(0, 0, 'human').setOrigin(0.5, 0.95);
     this.cone = scene.add.graphics();
     this.cone.setDepth(-1000); // floor decal: above floor, below props/entities
-    this.cone.setBlendMode(Phaser.BlendModes.ADD); // glowing neon light on the floor
+    // normal blend reads clearly as a coloured cone on a bright floor
     this.sync();
   }
 
@@ -75,8 +75,8 @@ export default class Human {
   drawCone(isWall) {
     const g = this.cone;
     g.clear();
-    const color = this.detected ? 0xff5079 : 0xff1a5e;
-    const alpha = this.detected ? 0.4 : 0.2;
+    const color = this.detected ? 0xff8a3d : 0xff5a5a;
+    const alpha = this.detected ? 0.42 : 0.26;
     g.fillStyle(color, alpha);
     g.lineStyle(2, color, 0.4);
 

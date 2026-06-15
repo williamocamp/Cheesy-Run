@@ -83,15 +83,6 @@ export default class GameScene extends Phaser.Scene {
       humans: this.humans,
     });
 
-    // Soft light that follows the mouse (additive over the dark floor)
-    this.playerLight = this.add
-      .image(0, 0, 'glow')
-      .setBlendMode(Phaser.BlendModes.ADD)
-      .setTint(COLORS.glowPlayer)
-      .setAlpha(0.5)
-      .setScale(3.4)
-      .setDepth(-90000);
-
     // Camera follows the mouse through the isometric world
     this.setupCamera();
 
@@ -110,7 +101,6 @@ export default class GameScene extends Phaser.Scene {
 
     this.player.move(this.cursors, this.keys, delta);
     this.player.sync();
-    this.playerLight.setPosition(this.player.view.x, this.player.view.y);
 
     const isWall = (x, y) => this.isWall(x, y);
     const losClear = (x1, y1, x2, y2) => this.losClear(x1, y1, x2, y2);

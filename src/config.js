@@ -17,21 +17,20 @@ export const WALL_H = 30;
 // --- Neon palette ---------------------------------------------------------
 // Dark base everywhere; colour comes from glowing neon accents.
 export const COLORS = {
-  bg: 0x070311,
+  bg: 0xbfe3f2,
 
-  // Isometric wall cube
-  wallTop: 0x271642,
-  wallLeft: 0x1b0f30,
-  wallRight: 0x130a23,
-  wallRimTop: 0x00e5ff, // neon cyan top edge
-  wallRimSide: 0xff2bd6, // neon magenta vertical edges
+  // Isometric wall cube — bright sunlit toy blocks
+  wallTop: 0xfff3e0,
+  wallLeft: 0xead0b0,
+  wallRight: 0xd9b994,
+  wallRimTop: 0xb88f63, // soft warm top edge
+  wallRimSide: 0xc9a378, // soft warm vertical edges
 
   // Vision cone
-  vision: 0xff1a5e,
-  visionAlert: 0xff5079,
+  vision: 0xff5a5a,
+  visionAlert: 0xff8a3d,
 
   // Glows
-  glowPlayer: 0x7af0ff, // cyan player light
   glowCheese: 0xffe24a,
-  glowDonut: 0xff7ad0,
+  glowDonut: 0xff9ec7,
 };
