@@ -1,7 +1,7 @@
 // Overlay scene: top-left HUD (cheese / lives / floor) + bottom-right minimap.
 // Reads game state from the registry, so it survives GameScene restarts.
 
-import { GAME_WIDTH, MAX_LIVES } from '../config.js';
+import { GAME_WIDTH, GAME_HEIGHT, MAX_LIVES, RENDER_SCALE } from '../config.js';
 import Minimap from '../systems/Minimap.js';
 
 export default class UIScene extends Phaser.Scene {
@@ -10,10 +10,15 @@ export default class UIScene extends Phaser.Scene {
   }
 
   create() {
+    // Match the supersampled buffer: zoom + recentre so the HUD, laid out in
+    // design coordinates, fills the full high-res canvas crisply.
+    this.cameras.main.setZoom(RENDER_SCALE);
+    this.cameras.main.centerOn(GAME_WIDTH / 2, GAME_HEIGHT / 2);
+
     const font = { fontFamily: 'Arial, sans-serif' };
 
     // Cheese counter
-    this.add.image(34, 30, 'cheese').setScrollFactor(0).setScale(1.15).setDepth(60);
+    this.add.image(34, 30, 'cheese').setScale(1.15).setDepth(60);
     this.cheeseText = this.add
       .text(54, 18, '0/0', {
         ...font,
@@ -23,7 +28,6 @@ export default class UIScene extends Phaser.Scene {
         stroke: '#4a3526',
         strokeThickness: 5,
       })
-      .setScrollFactor(0)
       .setDepth(60);
 
     // Lives (hearts)
@@ -31,8 +35,7 @@ export default class UIScene extends Phaser.Scene {
     for (let i = 0; i < MAX_LIVES; i++) {
       const h = this.add
         .image(28 + i * 30, 60, 'heart')
-        .setScrollFactor(0)
-        .setDepth(60);
+          .setDepth(60);
       this.hearts.push(h);
     }
 
@@ -46,7 +49,6 @@ export default class UIScene extends Phaser.Scene {
         stroke: '#4a3526',
         strokeThickness: 4,
       })
-      .setScrollFactor(0)
       .setDepth(60);
 
     // Resident / apartment name
@@ -59,7 +61,6 @@ export default class UIScene extends Phaser.Scene {
         stroke: '#4a3526',
         strokeThickness: 3,
       })
-      .setScrollFactor(0)
       .setDepth(60);
 
     // Title
@@ -73,7 +74,6 @@ export default class UIScene extends Phaser.Scene {
         strokeThickness: 6,
       })
       .setOrigin(0.5, 0)
-      .setScrollFactor(0)
       .setDepth(60);
 
     this.minimap = new Minimap(this);

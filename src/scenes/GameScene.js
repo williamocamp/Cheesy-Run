@@ -3,7 +3,7 @@
 // cheese / traps / humans, handles detection, lives, respawns, and floor
 // progression.
 
-import { TILE, ISO_W, ISO_H, WALL_H, FURN_MAX_H, GAME_WIDTH, GAME_HEIGHT, MAX_LIVES, COLORS } from '../config.js';
+import { TILE, ISO_W, ISO_H, WALL_H, FURN_MAX_H, GAME_WIDTH, GAME_HEIGHT, MAX_LIVES, RENDER_SCALE, COLORS } from '../config.js';
 import { isoPos, isoDepth } from '../systems/iso.js';
 import { buildLevel } from '../data/level.js';
 import { getFloorConfig, PATROL_ROUTES } from '../data/floors.js';
@@ -329,6 +329,8 @@ export default class GameScene extends Phaser.Scene {
       maxY - minY + WALL_H + pad * 2
     );
     this.cameras.main.startFollow(this.player.view, true, 0.12, 0.12);
+    // Supersample: zoom so the same world area fills the larger buffer.
+    this.cameras.main.setZoom(RENDER_SCALE);
   }
 
   // ---- gameplay events --------------------------------------------------
@@ -426,36 +428,41 @@ export default class GameScene extends Phaser.Scene {
   // ---- ui bits ----------------------------------------------------------
 
   showBanner(title, sub) {
-    const cx = GAME_WIDTH / 2;
-    const cy = GAME_HEIGHT / 2;
+    // Anchor to the camera's current view centre (world space) and counter the
+    // zoom so it appears centred at design size regardless of RENDER_SCALE.
+    const view = this.cameras.main.worldView;
+    const cx = view.centerX;
+    const cy = view.centerY;
+    const s = 1 / RENDER_SCALE;
     this.add
       .rectangle(cx, cy, 440, 124, 0x2b2230, 0.88)
-      .setScrollFactor(0)
+      .setScale(s)
       .setDepth(99999)
       .setStrokeStyle(3, 0xffe0b0);
     this.add
-      .text(cx, cy - 16, title, {
+      .text(cx, cy - 16 * s, title, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '32px',
         color: '#fff8e7',
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
-      .setScrollFactor(0)
+      .setScale(s)
       .setDepth(100000);
     this.add
-      .text(cx, cy + 24, sub || '', {
+      .text(cx, cy + 24 * s, sub || '', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
         color: '#ffd9a8',
       })
       .setOrigin(0.5)
-      .setScrollFactor(0)
+      .setScale(s)
       .setDepth(100000);
   }
 
   popText(wx, wy, msg, color) {
     const p = isoPos(wx, wy);
+    const s = 1 / RENDER_SCALE; // world object under camera zoom -> design size
     const t = this.add
       .text(p.x, p.y, msg, {
         fontFamily: 'Arial, sans-serif',
@@ -464,10 +471,11 @@ export default class GameScene extends Phaser.Scene {
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
+      .setScale(s)
       .setDepth(90000);
     this.tweens.add({
       targets: t,
-      y: p.y - 24,
+      y: p.y - 24 * s,
       alpha: 0,
       duration: 650,
       ease: 'Cubic.out',

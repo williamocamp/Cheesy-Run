@@ -10,8 +10,8 @@ export default class Minimap {
     this.cx = GAME_WIDTH - this.radius - 18;
     this.cy = GAME_HEIGHT - this.radius - 18;
 
-    this.dots = scene.add.graphics().setScrollFactor(0).setDepth(51);
-    this.frame = scene.add.graphics().setScrollFactor(0).setDepth(52);
+    this.dots = scene.add.graphics().setDepth(51);
+    this.frame = scene.add.graphics().setDepth(52);
 
     // Clip everything to a circle.
     const maskShape = scene.make.graphics();

@@ -7,6 +7,10 @@ export const GRID_H = 13;
 export const GAME_WIDTH = 880;
 export const GAME_HEIGHT = 572;
 
+// Supersampling: render into a buffer this many times larger (and zoom the
+// cameras to match) so the same view is drawn with more pixels = sharper.
+export const RENDER_SCALE = 2;
+
 export const MAX_LIVES = 5;
 
 // --- Isometric projection -------------------------------------------------
